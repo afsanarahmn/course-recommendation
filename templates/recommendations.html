@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Course Recommendations{% endblock %}
+
+{% block content %}
+<h2>Course Recommendations</h2>
+
+<form method="GET">
+    <label>Select Semester:</label>
+    <select name="semester">
+        {% for i in range(5, 9) %}
+        <option value="{{ i }}" {% if i == selected_semester %}selected{% endif %}>
+            Semester {{ i }} {% if i == 5 %}(Junior Fall){% elif i == 6 %}(Junior Spring){% elif i == 7 %}(Senior Fall){% elif i == 8 %}(Senior Spring){% endif %}
+        </option>
+        {% endfor %}
+    </select>
+
+    <label style="margin-left: 20px;">Include Electives?</label>
+    <input type="checkbox" name="electives" {% if include_electives %}checked{% endif %}>
+
+    <button type="submit" style="margin-left: 20px;">Update</button>
+</form>
+
+<hr>
+
+<h3>Suggested Courses</h3>
+<ul>
+    {% for course in recommended_courses %}
+    <li>{{ course }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+

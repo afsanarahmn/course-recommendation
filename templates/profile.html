@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<h2>My Profile</h2>
+
+<!-- Placeholder ID image -->
+<img src="{{ url_for('static', filename='placeholder-id.png') }}" alt="ID Photo" width="150"><br><br>
+
+<!-- Editable Profile Form -->
+<form method="POST">
+    <label><strong>Name:</strong></label><br>
+    <input name="name" value="{{ user.name }}"><br><br>
+
+    <label><strong>UNI:</strong></label><br>
+    <input name="uni" value="{{ user.uni }}"><br><br>
+
+    <label><strong>Major:</strong></label><br>
+    <input name="major" value="{{ user.major }}"><br><br>
+
+    <label><strong>Current Semester:</strong></label><br>
+    <select name="semester">
+        {% for i in range(1, 9) %}
+            <option value="{{ i }}" {% if i == user.semester %}selected{% endif %}>
+                Semester {{ i }} {% if i == 5 %}(Junior Fall){% elif i == 6 %}(Junior Spring){% elif i == 7 %}(Senior Fall){% elif i == 8 %}(Senior Spring){% endif %}
+            </option>
+        {% endfor %}
+    </select><br><br>
+
+    <button type="submit">Save</button>
+</form>
+
+<br>
+
+<!-- Dynamic Course History Link -->
+<a href="/course-history?semesters={{ semesters_completed }}">📘 View Coursework for {{ semesters_completed }} Past Semesters</a>
+{% endblock %}
+
