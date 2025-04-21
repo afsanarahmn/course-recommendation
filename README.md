@@ -18,7 +18,25 @@ All HTML templates are modular and extend from a shared base layout, and the sys
 prototype, it is structured to scale into a complete, data-driven advising platform in future iterations.
 
 ## Project Structure
-<pre><code> course-recommendation/ ├── app.py # Flask application ├── schema.sql # Database schema (for future use) ├── courses.db # Placeholder SQLite database ├── requirements.txt # Python dependencies ├── static/ │ └── placeholder-id.png # Default ID photo └── templates/ ├── base.html ├── login.html ├── register.html ├── dashboard.html ├── profile.html ├── recommendations.html ├── course_history.html └── plan.html </code></pre>
+```
+course-recommendation/
+├── app.py                    # Flask application
+├── schema.sql                # Database schema (for future use)
+├── courses.db                # Placeholder SQLite database
+├── requirements.txt          # Python dependencies
+├── static/
+│   └── placeholder-id.png    # Default ID photo
+└── templates/
+    ├── base.html
+    ├── login.html
+    ├── register.html
+    ├── dashboard.html
+    ├── profile.html
+    ├── recommendations.html
+    ├── course_history.html
+    └── plan.html
+```
+
 
 ## How to Run Locally
 
