@@ -1,9 +1,23 @@
 from flask import Flask, request, session, redirect, render_template, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
+import json
+import os
+from demo_data import demo_users
+from functools import wraps
+from flask import session, redirect
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_uni" not in session:
+            return redirect("/login")
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__)
-app.secret_key = 'dev'  # For development only
+app.secret_key = "dev"  # For development only
 
 # --------------------------
 # Database Connection Helper
@@ -25,40 +39,35 @@ def index():
 # --------------------------
 # Registration Route
 # --------------------------
-@app.route('/register', methods=['GET', 'POST'])
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    if request.method == 'POST':
-        db = get_db()
-        username = request.form['username']
-        password = generate_password_hash(request.form['password'])
+    if request.method == "POST":
+        uni = request.form["uni"]
+        name = request.form["name"]
+        password = request.form["password"]  # unused, placeholder
 
-        try:
-            db.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, password))
-            db.commit()
-            return redirect('/login')
-        except:
-            return "User already exists. Try a different username."
+        if uni not in demo_users:
+            return "This UNI is not preloaded in demo_data.py. Please use ar4334 or yk4567."
 
-    return render_template('register.html')
+        # Update name from form input (optional, or leave original)
+        demo_users[uni]["name"] = name
+        session["user_uni"] = uni
+        return redirect("/dashboard")
+
+    return render_template("register.html")
 
 # --------------------------
 # Login Route
 # --------------------------
-@app.route('/login', methods=['GET', 'POST'])
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    if request.method == 'POST':
-        db = get_db()
-        username = request.form['username']
-        password = request.form['password']
-
-        user = db.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-
-        if user and check_password_hash(user['password_hash'], password):
-            session['user_id'] = user['id']
-            return redirect('/dashboard')
-        return "Invalid username or password."
-
-    return render_template('login.html')
+    if request.method == "POST":
+        uni = request.form["uni"]
+        if uni in demo_users:
+            session["user_uni"] = uni
+            return redirect("/dashboard")
+        return "Invalid UNI"
+    return render_template("login.html")
 
 # --------------------------
 # Logout Route
@@ -71,14 +80,14 @@ def logout():
 # --------------------------
 # Dashboard Route
 # --------------------------
-@app.route('/dashboard')
+@app.route("/dashboard")
+@login_required
 def dashboard():
-    if "user_id" not in session:
-        return redirect('/login')
-
-    db = get_db()
-    courses = db.execute("SELECT * FROM courses").fetchall()
-    return render_template("dashboard.html", courses=courses)
+    uni = session.get("user_uni")
+    if not uni or uni not in demo_users:
+        return redirect("/login")
+    user = demo_users[uni]
+    return render_template("dashboard.html", user=user)
 
 # --------------------------
 # API Endpoint to View All Courses (JSON)
@@ -112,10 +121,70 @@ def profile():
     return render_template("profile.html", user=default_user, semesters_completed=semesters_completed)
 
 @app.route("/courses")
-def courses():
-    return render_template("courses.html")
+@login_required
+def all_courses():
+    import re
+    data_path = os.path.join("data", "2025-Fall.json")
+
+    with open(data_path, "r") as f:
+        raw_courses = json.load(f)
+
+    tag_keywords = {
+        "IEOR Core": ["IEOR E3608", "IEOR E4000", "Stochastic", "Simulation", "Optimization", "Financial Engineering"],
+        "Programming": ["Python", "Java", "Programming", "Data Structures"],
+        "Quantitative": ["Probability", "Statistics", "Regression"],
+        "CS Elective": ["COMS", "CSOR", "COMS W3134"],
+        "Technical Elective": ["Machine Learning", "Data Science", "Big Data", "Algorithms"],
+        "Management Elective": ["Management", "Strategy", "Operations"]
+    }
+
+    # Build simplified course data with tags
+    courses = []
+    for course in raw_courses:
+        title = course.get("course_title", "")
+        department = course.get("department_name", "")
+        instructor = course.get("instructor_name", "")
+        code = course.get("course_code", "")
+        tags = []
+
+        for tag, keywords in tag_keywords.items():
+            for kw in keywords:
+                if kw.lower() in title.lower() or kw.lower() in code.lower():
+                    tags.append(tag)
+                    break
+
+        courses.append({
+            "code": code,
+            "title": title,
+            "department": department,
+            "instructor": instructor,
+            "tags": tags
+        })
+
+    # Get search query + tag filter
+    query = request.args.get("q", "").strip().lower()
+    selected_tag = request.args.get("tag", "").strip()
+
+    # Apply search filter
+    if query:
+        courses = [
+            c for c in courses
+            if query in c["title"].lower()
+            or query in c["code"].lower()
+            or query in c["department"].lower()
+            or query in c["instructor"].lower()
+        ]
+
+    # Apply tag filter
+    if selected_tag:
+        courses = [c for c in courses if selected_tag in  c["tags"]]
+
+
+    return render_template("courses.html", courses=courses, query=query, selected_tag=selected_tag)
+
 
 @app.route("/plan")
+@login_required
 def plan():
     semester_plan = {
         1: ["MATH UN1101 – Calculus I", "UW Writing", "IEOR E2261 – Intro to OR"],
@@ -131,6 +200,7 @@ def plan():
     return render_template("plan.html", plan=semester_plan)
        
 @app.route("/course-history")
+@login_required
 def course_history():
     # Get number of semesters from query parameter (sent by profile page)
     semesters_completed = int(request.args.get("semesters", 1))
@@ -156,6 +226,7 @@ def course_history():
     return render_template("course_history.html", history=course_history)
 
 @app.route("/recommendations")
+@login_required
 def recommendations():
     semester = int(request.args.get("semester", 5))  # default to Semester 5
     include_electives = request.args.get("electives") == "on"
@@ -184,5 +255,3 @@ def recommendations():
                            selected_semester=semester,
                            include_electives=include_electives,
                            recommended_courses=recommended_courses)
-
-

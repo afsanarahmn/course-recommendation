@@ -1,11 +1,57 @@
 {% extends "base.html" %}
 {% block title %}All Courses{% endblock %}
 {% block content %}
-<h2>All Available Courses</h2>
-<ul>
-    <li><strong>IEOR E4501</strong>: Big Data Analytics (Tag: Python-heavy, Industry)</li>
-    <li><strong>IEOR E4407</strong>: Simulation (Tag: Project-heavy)</li>
-    <li><strong>IEOR E3658</strong>: Probability for Engineers (Tag: Math-heavy)</li>
-</ul>
+
+<h2>All Courses (Fall 2025)</h2>
+
+<!-- Search bar -->
+<form method="get" action="/courses" style="margin-bottom: 20px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search by title, code, department..." style="width: 300px;">
+    <button type="submit">Search</button>
+</form>
+
+<!-- Filter by Tag -->
+<p>Filter by Tag:
+    <a href="/courses" style="margin-right: 10px; {% if not selected_tag %}font-weight: bold;{% endif %}">All Courses</a>
+    {% for tag in ["IEOR Core", "Programming", "Quantitative", "CS Elective", "Technical Elective", "Management Elective"] %}
+        <a href="/courses?tag={{ tag }}" style="margin-right: 10px; {% if selected_tag == tag.lower() %}font-weight: bold;{% endif %}">{{ tag }}</a>
+    {% endfor %}
+</p>
+
+<style>
+    .course-card {
+        border: 1px solid #ccc;
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 6px;
+    }
+    .tag {
+        background: #e0e0e0;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-right: 5px;
+        font-size: 0.85em;
+    }
+</style>
+
+{% for course in courses %}
+<div class="course-card">
+    <strong>{{ course.code }}</strong>: {{ course.title }}<br>
+    <em>{{ course.department }}</em><br>
+    Instructor: {{ course.instructor }}<br>
+    {% if course.tags %}
+    <div>Tags:
+        {% for tag in course.tags %}
+        <span class="tag">{{ tag }}</span>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endfor %}
+
+{% if courses|length == 0 %}
+<p>No courses matched your search or tag filter.</p>
+{% endif %}
+
 {% endblock %}
 

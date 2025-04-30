@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Course History{% endblock %}
-
 {% block content %}
-<h2>Your Completed Coursework</h2>
+<h2>{{ user.name }}’s Course History</h2>
 
-{% for semester in history %}
-<details {% if loop.first %}open{% endif %}>
-    <summary><strong>{{ semester.label }}</strong></summary>
-    <ul>
-        {% for course in semester.courses %}
-        <li>{{ course }}</li>
-        {% endfor %}
-    </ul>
-</details>
-<br>
+{% for semester, courses in user.course_history.items() %}
+    <details>
+        <summary><strong>{{ semester }}</strong></summary>
+        <ul>
+            {% for course in courses %}
+                <li><strong>{{ course.code }}</strong>: {{ course.title }} 
+                    {% if course.grade %}- Grade: {{ course.grade }}{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </details>
 {% endfor %}
+
 {% endblock %}
 
