@@ -1,38 +1,59 @@
 {% extends "base.html" %}
-{% block title %}My Profile{% endblock %}
-
+{% block title %}Profile{% endblock %}
 {% block content %}
-<h2>My Profile</h2>
 
-<!-- Placeholder ID image -->
-<img src="{{ url_for('static', filename='placeholder-id.png') }}" alt="ID Photo" width="150"><br><br>
+<h2>Profile</h2>
 
-<!-- Editable Profile Form -->
-<form method="POST">
-    <label><strong>Name:</strong></label><br>
-    <input name="name" value="{{ user.name }}"><br><br>
+<form method="POST" id="profile-form">
+    <img src="{{ url_for('static', filename=user.photo) }}" alt="Profile Photo" width="100" style="display:block; margin-bottom:10px;">
 
-    <label><strong>UNI:</strong></label><br>
-    <input name="uni" value="{{ user.uni }}"><br><br>
+    <label>Name:</label>
+    <input type="text" name="name" value="{{ user.name }}" disabled><br>
 
-    <label><strong>Major:</strong></label><br>
-    <input name="major" value="{{ user.major }}"><br><br>
+    <label>UNI:</label>
+    <input type="text" name="uni" value="{{ user.uni }}" disabled><br>
 
-    <label><strong>Current Semester:</strong></label><br>
-    <select name="semester">
-        {% for i in range(1, 9) %}
-            <option value="{{ i }}" {% if i == user.semester %}selected{% endif %}>
-                Semester {{ i }} {% if i == 5 %}(Junior Fall){% elif i == 6 %}(Junior Spring){% elif i == 7 %}(Senior Fall){% elif i == 8 %}(Senior Spring){% endif %}
-            </option>
+    <label>Major:</label>
+    <select name="major" disabled>
+        {% for option in ["Financial Engineering", "Industrial Engineering", "Operations Research", "Computer Science", "Economics"] %}
+            <option value="{{ option }}" {% if user.major == option %}selected{% endif %}>{{ option }}</option>
         {% endfor %}
-    </select><br><br>
+    </select><br>
 
-    <button type="submit">Save</button>
+    <label>CSA Advisor Name:</label>
+    <input type="text" name="csa_name" value="{{ user.csa_name or '' }}" disabled><br>
+
+    <label>CSA Advisor Email:</label>
+    <input type="email" name="csa_email" value="{{ user.csa_email or '' }}" disabled><br>
+
+    <label>Major Advisor Name:</label>
+    <input type="text" name="major_advisor" value="{{ user.major_advisor or '' }}" disabled><br>
+
+    <label>Major Advisor Email:</label>
+    <input type="email" name="major_email" value="{{ user.major_email or '' }}" disabled><br>
+
+    <p style="font-size: 0.9em; color: gray;">Reach out to advisor to change name and UNI</p>
+
+    <p>
+        <a href="{{ url_for('course_history') }}">View Coursework</a>
+    </p>
+
+    <button type="button" id="edit-btn" onclick="enableEditing()">Edit</button>
+    <button type="submit" id="save-btn" style="display:none;">Save</button>
 </form>
 
-<br>
+<script>
+    function enableEditing() {
+        const form = document.getElementById('profile-form');
+        for (const input of form.querySelectorAll('input, select')) {
+            if (input.name !== "name" && input.name !== "uni") {
+                input.disabled = false;
+            }
+        }
+        document.getElementById('edit-btn').style.display = 'none';
+        document.getElementById('save-btn').style.display = 'inline';
+    }
+</script>
 
-<!-- Dynamic Course History Link -->
-<a href="/course-history?semesters={{ semesters_completed }}">📘 View Coursework for {{ semesters_completed }} Past Semesters</a>
 {% endblock %}
 

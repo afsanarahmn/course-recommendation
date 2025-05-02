@@ -6,7 +6,7 @@ demo_users = {
         "uni": "ar4334",
         "major": "Financial Engineering",
         "semester": 5,
-        "id_image": "afsana.png",
+        "photo": "afsana.png",
         "course_history": {
             "Fall 2023": [
                 {"code": "CHEM1403W", "title": "General Chemistry I - Lectures", "credits": 4, "grade": "D"},

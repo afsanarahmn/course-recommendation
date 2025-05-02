@@ -36,6 +36,10 @@ def index():
         return redirect("/dashboard")
     return redirect("/login")
 
+@app.context_processor
+def inject_user_data():
+    return dict(demo_users=demo_users)
+
 # --------------------------
 # Registration Route
 # --------------------------
@@ -99,26 +103,25 @@ def api_courses():
     return jsonify([dict(row) for row in rows])
 
 @app.route("/profile", methods=["GET", "POST"])
+@login_required
 def profile():
-    # Dummy hardcoded user (you'll replace this with DB later)
-    default_user = {
-        "name": "Afsana Rahman",
-        "uni": "ar1234",
-        "major": "Financial Engineering",
-        "semester": 5  # e.g., Junior Fall = Semester 5
-    }
+    user_uni = session["user_uni"]
+    user = demo_users.get(user_uni)
+
+    if not user:
+        return "User not found", 404
 
     if request.method == "POST":
-        # In a real app, you'd save these to a database
-        default_user["name"] = request.form["name"]
-        default_user["uni"] = request.form["uni"]
-        default_user["major"] = request.form["major"]
-        default_user["semester"] = int(request.form["semester"])
+        # Save updated fields only
+        user["major"] = request.form.get("major", user["major"])
+        user["csa_name"] = request.form.get("csa_name", "")
+        user["csa_email"] = request.form.get("csa_email", "")
+        user["major_advisor"] = request.form.get("major_advisor", "")
+        user["major_email"] = request.form.get("major_email", "")
 
-    # Calculate how many past semesters exist
-    semesters_completed = default_user["semester"] - 1
+    semesters_completed = user.get("semester", 1)
+    return render_template("profile.html", user=user, semesters_completed=semesters_completed)
 
-    return render_template("profile.html", user=default_user, semesters_completed=semesters_completed)
 
 @app.route("/courses")
 @login_required
@@ -131,7 +134,6 @@ def all_courses():
 
     tag_keywords = {
         "IEOR Core": ["IEOR E3608", "IEOR E4000", "Stochastic", "Simulation", "Optimization", "Financial Engineering"],
-        "Programming": ["Python", "Java", "Programming", "Data Structures"],
         "Quantitative": ["Probability", "Statistics", "Regression"],
         "CS Elective": ["COMS", "CSOR", "COMS W3134"],
         "Technical Elective": ["Machine Learning", "Data Science", "Big Data", "Algorithms"],
@@ -186,44 +188,37 @@ def all_courses():
 @app.route("/plan")
 @login_required
 def plan():
-    semester_plan = {
-        1: ["MATH UN1101 – Calculus I", "UW Writing", "IEOR E2261 – Intro to OR"],
-        2: ["MATH UN1102 – Calculus II", "CS1004 – Python", "IEOR E3106 – Prob Models"],
-        3: ["STAT GU4001 – Prob & Stats", "IEOR E4307 – Financial Engineering"],
-        4: ["IEOR E4501 – Big Data", "ECON UN3412 – Econometrics"],
-        5: ["IEOR E4106 – Stochastic Models", "COMS W3134 – Data Structures"],
-        6: ["IEOR E4404 – Optimization Models", "IEOR E4701 – Machine Learning"],
-        7: ["IEOR E4650 – Deep Learning", "IEOR E4999 – Senior Seminar"],
-        8: ["IEOR E4570 – Systems Engineering", "IEOR E4999 – Capstone"]
-    }
+    user_uni = session.get("user_uni")
+    if not user_uni or user_uni not in demo_users:
+        return redirect("/login")
 
-    return render_template("plan.html", plan=semester_plan)
-       
+    user_data = demo_users[user_uni]
+    course_history = user_data.get("courses", {})
+
+    # Sort semesters in order (e.g., Semester 1 to 8)
+    sorted_semesters = sorted(course_history.keys(), key=lambda s: int(s.split()[-1]))
+
+    return render_template("plan.html", user=user_data, course_history=course_history, semesters=sorted_semesters)
+    
 @app.route("/course-history")
 @login_required
 def course_history():
-    # Get number of semesters from query parameter (sent by profile page)
-    semesters_completed = int(request.args.get("semesters", 1))
+    user_uni = session['user_uni']
+    user = demo_users.get(user_uni)
 
-    # Dummy course map for now
-    dummy_courses = {
-        1: ["MATH UN1101 – Calculus I", "UW Writing", "IEOR E2261 – Intro to OR"],
-        2: ["MATH UN1102 – Calculus II", "IEOR E3106 – Prob Models", "CS1004 – Python"],
-        3: ["STAT GU4001 – Prob & Stats", "IEOR E4407 – Simulation"],
-        4: ["IEOR E4501 – Big Data", "ECON UN3412 – Econometrics"],
-        5: ["IEOR E4307 – Financial Engineering", "IEOR E4106 – Stochastic Models"]
-    }
+    if not user or "course_history" not in user:
+        return "No course history available", 404
 
-    # Compile course history for completed semesters
     course_history = []
-    for semester in range(1, semesters_completed + 1):
+    for semester, courses in user["course_history"].items():
         course_history.append({
-            "number": semester,
-            "label": f"Semester {semester}",
-            "courses": dummy_courses.get(semester, ["No data for this semester"])
+            "label": semester,
+            "courses": [f"{c['code']} — {c['title']}" for c in courses]
         })
 
     return render_template("course_history.html", history=course_history)
+
+ 
 
 @app.route("/recommendations")
 @login_required
